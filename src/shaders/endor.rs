@@ -1,5 +1,5 @@
-//! Endor: luna boscosa. Biomas por fBm (océano / playa / claros / bosque denso) usando la MISMA altura que
-//! deforma la malla (por eso el océano es plano), más una capa de nubes que se desplaza con el tiempo.
+//! Endor: luna tipo Tierra. Océanos azules (la costa usa la MISMA altura que deforma la malla, por eso el mar es plano),
+//! bosques verdes, manchas de tierra, capa de nubes en remolinos que se desplaza con el tiempo y borde atmosférico azul.
 
 use super::*;
 use crate::config;
@@ -16,23 +16,22 @@ pub fn shade(f: &FragmentInput, u: &Uniforms) -> Color {
 
     let mut especular = 0.0;
     let c = if h <= cfg.nivel_mar + 0.002 {
-        // Océano: azul más oscuro hacia el centro de la zona plana + brillo especular.
         especular = blinn(n, l, v, 90.0) * 0.8;
-        vec3(0.05, 0.18, 0.35).lerp(vec3(0.08, 0.3, 0.45), value3(d * 20.0))
+        vec3(0.03, 0.17, 0.36).lerp(vec3(0.10, 0.36, 0.55), value3(d * 14.0) * 0.8) // océano profundo -> aguas claras
     } else {
-        let b = 0.5 + 0.5 * fbm(d * 6.0 + vec3(1.0, 8.0, 3.0), 3); // bioma
-        let veg = 0.85 + 0.3 * value3(d * 70.0); // variación fina del follaje
-        let bosque = vec3(0.05, 0.24, 0.08) * veg;
-        let claro = vec3(0.30, 0.45, 0.14) * veg;
-        let playa = vec3(0.66, 0.58, 0.36);
-        let tierra = claro.lerp(bosque, smoothstep(0.42, 0.58, b));
-        tierra.lerp(playa, smoothstep(cfg.nivel_mar + 0.06, cfg.nivel_mar, h))
+        let b = 0.5 + 0.5 * fbm(d * 5.0 + vec3(1.0, 8.0, 3.0), 3);
+        let follaje = 0.8 + 0.4 * value3(d * 80.0);
+        let bosque = vec3(0.07, 0.30, 0.12) * follaje;
+        let claro = vec3(0.30, 0.45, 0.16) * follaje;
+        let tierra = vec3(0.55, 0.48, 0.28);
+        let mut t = bosque.lerp(claro, smoothstep(0.52, 0.70, b));
+        t = t.lerp(tierra, smoothstep(0.62, 0.85, 0.5 + 0.5 * fbm(d * 7.0 + vec3(5.0, 2.0, 8.0), 3)) * 0.75);
+        t.lerp(vec3(0.62, 0.58, 0.36), smoothstep(cfg.nivel_mar + 0.04, cfg.nivel_mar, h)) // orillas
     };
-    let mut col = c * lambert(n, l, 0.05) + Vec3::splat(especular);
+    let mut col = c * lambert(n, l, 0.04) + Vec3::splat(especular);
 
-    // Nubes: fBm que se desplaza con el tiempo; blanco iluminado por el Sol.
-    let w = vec3(u.time * config::CLOUD_SPEED, 0.0, 0.0);
-    let nube = smoothstep(1.0 - config::CLOUD_COVER, 1.0 - config::CLOUD_COVER + 0.2, 0.5 + 0.5 * fbm(d * 4.0 + w + vec3(9.0, 2.0, 5.0), 4));
-    col = col.lerp(Vec3::splat(1.0) * lambert(n, l, 0.06), nube * 0.9);
-    col
+    // Remolinos de nubes: blancos, iluminados por el Sol.
+    let nube = nubes(d, u.time, config::CLOUD_COVER);
+    col = col.lerp(Vec3::splat(lambert(n, l, 0.06)) * 1.05, nube * 0.9);
+    col + atmosfera(n, v, l, vec3(0.35, 0.60, 1.0), 1.1)
 }
