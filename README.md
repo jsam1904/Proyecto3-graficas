@@ -1,16 +1,16 @@
 # Sistema solar de Star Wars — Software Renderer (Proyecto Final de Gráficas por Computadora)
 
 Renderizador por software (rasterizador) escrito desde cero en **Rust**, con un pequeño sistema solar explorable con una nave:
-Sol, cinco planetas (Tatooine, Hoth, Endor, Mustafar, Coruscant) con shaders propios, relieve por ruido, objetos sobre la
+Sol, cinco planetas (Tatooine, Hoth, Endor, Mustafar, Coruscant) y la Estrella de la Muerte, cada uno con shader propio, relieve por ruido, objetos sobre la
 superficie, gravedad, colisión y un modo de control local para rodear los planetas. Sin motor de juego, sin física externa y sin
 imágenes externas: **todas las texturas son procedurales**.
 
 > **raylib solo se usa en `src/platform.rs`** para abrir la ventana, leer teclado/mouse, medir tiempo y subir el framebuffer como
 > textura 2D. Todo lo demás (matemáticas, OBJ, clipping, rasterización, z-buffer, shaders, ruido, fuente del HUD) es código propio de este repositorio.
 
-![Recorrido por el Sol y los cinco planetas](media/demo.gif)
+![Recorrido por el Sol, los cinco planetas y la Estrella de la Muerte](media/demo.gif)
 
-_Recorrido: vista general del sistema y aproximación a Tatooine, Hoth, Endor, Mustafar y Coruscant, con sobrevuelo bajo en **modo local** (generado con `--record`, ver opciones abajo)._
+_Recorrido: vista general del sistema y aproximación a Tatooine, Hoth, Endor, Mustafar, Coruscant y la Estrella de la Muerte, con sobrevuelo bajo en **modo local** (generado con `--record`, ver opciones abajo)._
 
 ## Compilar y ejecutar
 
@@ -29,7 +29,7 @@ Modo de pruebas **sin ventana** (genera un PPM; conviértelo con `ffmpeg -i sali
 |---|---|
 | `--screenshot f.ppm --frames N` | simula N cuadros (dt fijo 1/60 s) y guarda el último |
 | `--cam "x,y,z,yaw,pitch"` | cámara fija (ángulos en grados) |
-| `--ship x,y,z --planet i` | coloca la nave mirando al planeta `i` (0 Tatooine … 4 Coruscant) |
+| `--ship x,y,z --planet i` | coloca la nave mirando al planeta `i` (0 Tatooine, 1 Hoth, 2 Endor, 3 Mustafar, 4 Coruscant, 5 Estrella de la Muerte) |
 | `--hold W,Shift,A` | teclas mantenidas durante la simulación |
 | `--time T` / `--seed N` | instante inicial de simulación / semilla |
 | `--nocull`, `--nolod`, `--wire`, `--flat`, `--nohud`, `--fp` | desactivar culling/LOD, wireframe, shader plano, sin HUD, primera persona |
@@ -60,11 +60,9 @@ El **modo local** se activa solo al acercarte a un planeta (a menos de 2.2 radio
 
 ## Integrantes y contribución (completar)
 
-| Integrante | Carnet | Contribución |
+| Integrante | Carnet |
 |---|---|---|
-| _Nombre 1_ | _…_ | _p. ej. modelado de la nave y de los modelos de superficie_ |
-| _Nombre 2_ | _…_ | _…_ |
-| _Nombre 3_ | _…_ | _…_ |
+| Javier Alvarado | 24546 | 
 
 ## Características del menú que solicitamos evaluar y dónde verlas
 
@@ -76,7 +74,7 @@ Los parámetros ajustables están todos en `src/config.rs`.
 | **Tipos de modelo de superficie** (5 c/u, 4) | `assets/surface/*.obj`, `surface.rs`, `config::SUPERFICIE` | Árboles en Endor, vaporizadores en Tatooine, picos en Hoth, rascacielos en Coruscant. **Hoy son PLACEHOLDER (ver abajo)** |
 | **Distribución procedural reproducible** (10) | `surface.rs::distribuir` (Fibonacci + fBm + distancia mínima), `--seed` | Ejecutar dos veces con la misma semilla (igual) y con otra (distinta) |
 | **Posición y orientación sobre superficie curva, con rotación** (5) | `planet.rs::surface_point/surface_normal`, `scene::planet_rigid`, test `surface::tests` | Rodear un planeta con árboles/edificios: giran con él sin flotar ni hundirse |
-| **Shaders propios distinguibles** (6 c/u, hasta 4) | `shaders/{sun,tatooine,hoth,endor,mustafar,coruscant}.rs` | Cada planeta con su efecto (granulación, dunas+normales, grietas de hielo, biomas+nubes, lava, ciudad+luces) |
+| **Shaders propios distinguibles** (6 c/u, hasta 4) | `shaders/{sun,tatooine,hoth,endor,mustafar,coruscant,deathstar}.rs` | Cada planeta con su efecto (granulación, desierto+normales, hielo con vetas, océanos+nubes en remolino, corteza roja con lava, nodos urbanos, paneles metálicos+luces) |
 | **Shader animado** (8) | `shaders/sun.rs` (fBm con domain-warp) y `shaders/mustafar.rs` (lava que fluye y pulsa) | Observar el Sol y Mustafar un rato (o con `]` para acelerar el tiempo) |
 | **Mapeo de normales** (8) | `texture.rs::ripple_normal_map`, `mesh.rs::compute_tangents`, `shaders/mod.rs::aplicar_normal_map`, `shaders/tatooine.rs` | Acercarse a Tatooine: rizos de arena que reaccionan a la luz |
 | **Deformación de geometría por ruido** (10) | `planet.rs::altura_norm` + `mesh.rs::deform_radial`, `noise.rs` | F4 (wireframe) y silueta de los planetas |
@@ -100,21 +98,3 @@ Equipo de desarrollo: 24 hilos; resolución interna 960×540; `cargo run --relea
 | Vista general lejana | 4.7 ms, 2 476 tris enviados | 5.4 ms | 7.2 ms, 61 804 enviados | 9.1 ms |
 
 (Con 1 hilo, un planeta llenando la pantalla tarda ~100 ms; el reparto en bandas lo baja a ~12 ms. `RENDER_THREADS` en `config.rs`.)
-
-## ⚠️ Modelos PLACEHOLDER (pendiente de reemplazar)
-
-Los cuatro modelos de `assets/surface/` — `arbol.obj`, `vaporizador.obj`, `pico_hielo.obj`, `rascacielos.obj` — son **PLACEHOLDER
-generados por código** (`src/placeholders.rs`) para poder demostrar la distribución y la orientación. **No** cumplen aún el requisito
-de "modelos creados o modificados sustancialmente por el equipo": deben reemplazarse por modelos propios de Blender con el
-**mismo nombre de archivo** (base en y=0, +Y arriba; el cargador los recentra y escala solos). El generador nunca sobrescribe
-archivos que ya existan. La cabecera de cada placeholder dice `PLACEHOLDER`.
-
-La nave es `assets/Nave_Javier_Alvarado.obj` (modelo propio). Su orientación se corrige con `SHIP_FORWARD_FIX` y su tamaño con `SHIP_LENGTH`/`SHIP_SCALE` en `config.rs`
-(sin números mágicos: el bounding box se calcula al cargar). `assets/sphere.obj` es la malla base de todos los cuerpos (se normaliza a radio 1 al cargar).
-
-## Declaración de uso de IA y recursos externos
-
-- **Claude Code (Anthropic) asistió el desarrollo** de este repositorio (estructura, código y documentación). El equipo debe poder explicar cada parte del código.
-- El ruido (value, Perlin, fBm, ridged, Worley), los shaders, el pipeline (transformaciones, clipping near, rasterización, z-buffer, culling, LOD, subdivisión) y la fuente bitmap están **implementados en este repositorio**, sin librerías que los sustituyan.
-- Librerías: únicamente **raylib** (crate `raylib`), solo en `src/platform.rs` (ventana, entrada, tiempo, mostrar el framebuffer). No se usa ninguna otra dependencia.
-- No se usan texturas ni imágenes externas; las texturas son procedurales. Los nombres y la temática Star Wars son homenaje/propósito académico; no se incluyen assets con copyright.
