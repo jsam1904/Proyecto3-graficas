@@ -95,7 +95,7 @@ pub enum Terreno { Dunas, Montanas, Colinas }
 
 /// Shader de fragmentos de cada planeta (ver shaders/mod.rs).
 #[derive(Clone, Copy)]
-pub enum ShaderKind { Tatooine, Hoth, Endor, Mustafar, Coruscant }
+pub enum ShaderKind { Tatooine, Hoth, Endor, Mustafar, Coruscant, DeathStar }
 
 pub struct PlanetCfg {
     pub nombre: &'static str,
@@ -117,34 +117,39 @@ pub struct PlanetCfg {
     pub semilla: [f32; 3],
     pub nivel_mar: f32,
     pub shader: ShaderKind,
+    /// Color del halo atmosférico fuera del disco (negro = sin atmósfera).
+    pub atmosfera: [f32; 3],
 }
 
-pub const PLANETAS: [PlanetCfg; 5] = [
+pub const PLANETAS: [PlanetCfg; 6] = [
     PlanetCfg { nombre: "TATOOINE", radio: 40.0, orbita: 450.0, vel_orbita: 0.020, fase: 0.0, vel_rotacion: 0.25, inclinacion_deg: 12.0,
-                masa: 64.0, terreno: Terreno::Dunas, amplitud: 0.05, frecuencia: 6.0, semilla: [3.1, 7.7, 1.3], nivel_mar: 0.0, shader: ShaderKind::Tatooine },
+                masa: 64.0, terreno: Terreno::Dunas, amplitud: 0.05, frecuencia: 6.0, semilla: [3.1, 7.7, 1.3], nivel_mar: 0.0, shader: ShaderKind::Tatooine, atmosfera: [0.45, 0.65, 1.0] },
     PlanetCfg { nombre: "HOTH", radio: 36.0, orbita: 650.0, vel_orbita: 0.016, fase: 2.0, vel_rotacion: 0.20, inclinacion_deg: 23.0,
-                masa: 55.0, terreno: Terreno::Montanas, amplitud: 0.08, frecuencia: 5.0, semilla: [9.4, 2.2, 5.8], nivel_mar: 0.0, shader: ShaderKind::Hoth },
+                masa: 55.0, terreno: Terreno::Montanas, amplitud: 0.08, frecuencia: 5.0, semilla: [9.4, 2.2, 5.8], nivel_mar: 0.0, shader: ShaderKind::Hoth, atmosfera: [0.55, 0.75, 1.0] },
     PlanetCfg { nombre: "ENDOR", radio: 48.0, orbita: 850.0, vel_orbita: 0.013, fase: 3.6, vel_rotacion: 0.18, inclinacion_deg: 8.0,
-                masa: 90.0, terreno: Terreno::Colinas, amplitud: 0.05, frecuencia: 3.5, semilla: [1.9, 4.6, 8.3], nivel_mar: 0.45, shader: ShaderKind::Endor },
+                masa: 90.0, terreno: Terreno::Colinas, amplitud: 0.05, frecuencia: 3.5, semilla: [1.9, 4.6, 8.3], nivel_mar: 0.42, shader: ShaderKind::Endor, atmosfera: [0.35, 0.60, 1.0] },
     PlanetCfg { nombre: "MUSTAFAR", radio: 32.0, orbita: 1050.0, vel_orbita: 0.011, fase: 5.0, vel_rotacion: 0.22, inclinacion_deg: 0.0,
-                masa: 50.0, terreno: Terreno::Montanas, amplitud: 0.07, frecuencia: 6.0, semilla: [6.6, 0.8, 3.9], nivel_mar: 0.0, shader: ShaderKind::Mustafar },
+                masa: 50.0, terreno: Terreno::Montanas, amplitud: 0.07, frecuencia: 6.0, semilla: [6.6, 0.8, 3.9], nivel_mar: 0.0, shader: ShaderKind::Mustafar, atmosfera: [1.0, 0.30, 0.10] },
     PlanetCfg { nombre: "CORUSCANT", radio: 56.0, orbita: 1250.0, vel_orbita: 0.009, fase: 1.0, vel_rotacion: 0.12, inclinacion_deg: 18.0,
-                masa: 120.0, terreno: Terreno::Colinas, amplitud: 0.012, frecuencia: 3.0, semilla: [2.5, 9.1, 6.2], nivel_mar: 0.0, shader: ShaderKind::Coruscant },
+                masa: 120.0, terreno: Terreno::Colinas, amplitud: 0.012, frecuencia: 3.0, semilla: [2.5, 9.1, 6.2], nivel_mar: 0.0, shader: ShaderKind::Coruscant, atmosfera: [0.55, 0.70, 1.0] },
+    // Estrella de la Muerte: esfera lisa (amplitud 0), sin atmósfera, rota lento.
+    PlanetCfg { nombre: "DEATH STAR", radio: 34.0, orbita: 1420.0, vel_orbita: 0.0075, fase: 4.3, vel_rotacion: 0.03, inclinacion_deg: 0.0,
+                masa: 100.0, terreno: Terreno::Colinas, amplitud: 0.0, frecuencia: 1.0, semilla: [0.0, 0.0, 0.0], nivel_mar: 0.0, shader: ShaderKind::DeathStar, atmosfera: [0.0, 0.0, 0.0] },
 ];
 
 // --- Parámetros de shaders (ajustables en vivo para la defensa) ---
 /// Velocidad de la animación de la granulación solar.
 pub const SUN_ANIM_SPEED: f32 = 0.12;
 /// Intensidad del mapa de normales de Tatooine y repeticiones de la textura por cara.
-pub const NORMAL_MAP_STRENGTH: f32 = 0.9;
-pub const NORMAL_MAP_TILING: f32 = 20.0;
+pub const NORMAL_MAP_STRENGTH: f32 = 0.2;
+pub const NORMAL_MAP_TILING: f32 = 12.0;
 pub const NORMAL_MAP_SIZE: usize = 256;
 /// Brillo de las grietas de lava de Mustafar y su velocidad de pulso.
 pub const LAVA_INTENSITY: f32 = 1.2;
 pub const LAVA_PULSE_SPEED: f32 = 1.6;
-/// Intensidad de las luces de la ciudad nocturna de Coruscant y celdas por cara del cubo.
+/// Brillo de los nodos urbanos de Coruscant y densidad de nodos (frecuencia del ruido de Worley).
 pub const CITY_LIGHT_INTENSITY: f32 = 1.2;
-pub const CITY_GRID: f32 = 22.0;
+pub const CITY_GRID: f32 = 3.6;
 /// Intensidad de los destellos especulares y del borde Fresnel de Hoth.
 pub const ICE_GLINT: f32 = 1.0;
 pub const ICE_RIM: f32 = 1.0;
@@ -200,12 +205,12 @@ pub struct SurfaceCfg {
 pub const SUPERFICIE: [SurfaceCfg; 4] = [
     SurfaceCfg { planeta: 0, archivo: "vaporizador.obj", cantidad: 90, altura: [2.4, 3.6], separacion: 2.0, frecuencia: 2.5, umbral: 0.30, hundir: 0.15,
                  color_bajo: [0.45, 0.42, 0.38], color_alto: [0.78, 0.76, 0.70], corte: 0.14 },
-    SurfaceCfg { planeta: 1, archivo: "pico_hielo.obj", cantidad: 170, altura: [3.0, 8.0], separacion: 0.6, frecuencia: 3.0, umbral: 0.42, hundir: 0.3,
-                 color_bajo: [0.55, 0.72, 0.9], color_alto: [0.85, 0.95, 1.0], corte: 0.5 },
-    SurfaceCfg { planeta: 2, archivo: "arbol.obj", cantidad: 280, altura: [6.0, 11.0], separacion: 0.7, frecuencia: 3.0, umbral: 0.40, hundir: 0.3,
+    SurfaceCfg { planeta: 1, archivo: "pico_hielo.obj", cantidad: 120, altura: [1.8, 4.5], separacion: 0.6, frecuencia: 3.0, umbral: 0.42, hundir: 0.3,
+                 color_bajo: [0.50, 0.65, 0.85], color_alto: [0.90, 0.96, 1.0], corte: 0.5 },
+    SurfaceCfg { planeta: 2, archivo: "arbol.obj", cantidad: 200, altura: [3.0, 6.0], separacion: 0.7, frecuencia: 3.0, umbral: 0.40, hundir: 0.3,
                  color_bajo: [0.30, 0.20, 0.10], color_alto: [0.08, 0.30, 0.10], corte: 0.34 },
-    SurfaceCfg { planeta: 4, archivo: "rascacielos.obj", cantidad: 500, altura: [4.0, 14.0], separacion: 0.7, frecuencia: 2.0, umbral: 0.30, hundir: 0.3,
-                 color_bajo: [0.22, 0.26, 0.34], color_alto: [0.50, 0.56, 0.68], corte: 0.68 },
+    SurfaceCfg { planeta: 4, archivo: "rascacielos.obj", cantidad: 260, altura: [1.5, 4.5], separacion: 0.7, frecuencia: 2.0, umbral: 0.30, hundir: 0.3,
+                 color_bajo: [0.10, 0.075, 0.06], color_alto: [0.46, 0.30, 0.18], corte: 0.68 },
 ];
 
 // --- Modo de control local (se activa solo al entrar en la zona de influencia de un planeta) ---
