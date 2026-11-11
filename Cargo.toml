@@ -4,3 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+raylib = { version = "6.0.0", features = ["SUPPORT_IMAGE_GENERATION"] }
+
+# `cargo run` (debug) también optimizado: un rasterizador por software sin optimizar es inutilizable.
+[profile.dev]
+opt-level = 3
