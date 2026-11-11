@@ -253,6 +253,11 @@ impl App {
         // ---- Fondo: estrellas y halo del Sol (solo en píxeles vacíos).
         self.stars.draw(fb, &cam, self.t);
         halo_solar(fb, &cam, &vp);
+        for p in &self.planets {
+            let a = p.cfg.atmosfera;
+            if a == [0.0, 0.0, 0.0] { continue; }
+            halo_atmosfera(fb, &cam, &vp, p.pos(self.t), p.cfg.radio * (1.0 + p.cfg.amplitud), Vec3::from(a));
+        }
 
         if self.hud {
             let (nombre, alt) = self.nearest_altitude();
@@ -288,6 +293,44 @@ fn halo_solar(fb: &mut Framebuffer, cam: &Camera, vp: &Mat4) {
             let p = fb.color[i];
             let (r, gg, b) = (((p >> 16) & 255) as f32 / 255.0, ((p >> 8) & 255) as f32 / 255.0, (p & 255) as f32 / 255.0);
             fb.color[i] = crate::shaders::to_u32(vec3(r + g, gg + g * 0.55, b + g * 0.2));
+        }
+    }
+}
+
+/// Halo atmosférico: anillo fino y brillante justo fuera del disco del planeta, más intenso hacia el lado que mira al Sol.
+/// Es un efecto de post-proceso en 2D sobre píxeles sin geometría (profundidad = 0).
+fn halo_atmosfera(fb: &mut Framebuffer, cam: &Camera, vp: &Mat4, centro: Vec3, radio: f32, color: Vec3) {
+    let c = vp.mul_vec4(centro.extend(1.0));
+    if c.w <= config::NEAR { return; }
+    let (sx, sy, _) = crate::raster::to_screen(c, fb.w, fb.h);
+    let r_px = radio / c.w * (fb.h as f32 * 0.5) / (cam.fov_deg.to_radians() * 0.5).tan();
+    if r_px < 3.0 || r_px > fb.h as f32 { return; } // muy lejos o demasiado cerca (el borde ya lo da el shader)
+    let grosor = (r_px * 0.14).max(2.5);
+    // Dirección en pantalla hacia el Sol (para iluminar solo el limbo que lo mira).
+    let cs = vp.mul_vec4(vec4(0.0, 0.0, 0.0, 1.0));
+    let (ux, uy) = if cs.w > config::NEAR {
+        let (a, b, _) = crate::raster::to_screen(cs, fb.w, fb.h);
+        (a - sx, b - sy)
+    } else { (sx - fb.w as f32 * 0.5, sy - fb.h as f32 * 0.5) };
+    let l = (ux * ux + uy * uy).sqrt().max(1e-3);
+    let (ux, uy) = (ux / l, uy / l);
+    let alcance = r_px + grosor;
+    if sx + alcance < 0.0 || sy + alcance < 0.0 || sx - alcance > fb.w as f32 || sy - alcance > fb.h as f32 { return; }
+    let (x0, x1) = (((sx - alcance).max(0.0)) as usize, ((sx + alcance).min(fb.w as f32 - 1.0)) as usize);
+    let (y0, y1) = (((sy - alcance).max(0.0)) as usize, ((sy + alcance).min(fb.h as f32 - 1.0)) as usize);
+    for y in y0..=y1 {
+        for x in x0..=x1 {
+            let i = y * fb.w + x;
+            if fb.depth[i] != 0.0 { continue; }
+            let (dx, dy) = (x as f32 - sx, y as f32 - sy);
+            let dist = (dx * dx + dy * dy).sqrt();
+            if dist < r_px * 0.97 || dist > alcance { continue; }
+            let t = ((dist - r_px) / grosor).max(0.0);
+            let lado = ((dx * ux + dy * uy) / dist.max(1e-3)) * 0.5 + 0.5; // 1 = mira al Sol
+            let g = (1.0 - t).powf(2.2) * lado.powi(2) * 0.9;
+            let p = fb.color[i];
+            let (r, gg, b) = (((p >> 16) & 255) as f32 / 255.0, ((p >> 8) & 255) as f32 / 255.0, (p & 255) as f32 / 255.0);
+            fb.color[i] = crate::shaders::to_u32(vec3(r + color.x * g, gg + color.y * g, b + color.z * g));
         }
     }
 }
