@@ -134,6 +134,17 @@ impl Ship {
         self.pos += (self.vel + self.frame_vel) * dt;
     }
 
+    /// Gira suavemente la nave (arco corto, conservando el alabeo) para que `fwd` apunte hacia `dir`.
+    pub fn turn_towards(&mut self, dir: Vec3, dt: f32) {
+        let eje = self.fwd.cross(dir);
+        let mut ang = eje.length().atan2(self.fwd.dot(dir));
+        let e = if eje.length() > 1e-5 { eje.normalize() } else if self.fwd.dot(dir) < 0.0 { self.up } else { return };
+        ang *= smooth(config::WARP_TURN_K, dt);
+        self.fwd = self.fwd.rotate_about(e, ang);
+        self.up = self.up.rotate_about(e, ang);
+        self.right = self.right.rotate_about(e, ang);
+    }
+
     /// Matriz modelo -> mundo de la nave.
     pub fn model(&self, base: &Mat4) -> Mat4 { Mat4::from_axes(self.right, self.up, -self.fwd, self.pos) * *base }
 }
