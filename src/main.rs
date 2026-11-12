@@ -19,6 +19,7 @@ mod scene;
 mod shaders;
 mod ship;
 mod stars;
+mod warp;
 mod surface;
 mod texture;
 
@@ -48,10 +49,11 @@ struct Args {
     every: u32,
     planet: usize,
     time: f32,
+    warp: Option<usize>,
 }
 
 fn parse_args() -> Args {
-    let mut a = Args { screenshot: None, frames: 1, seed: config::SEED_DEFAULT, cam: None, wire: false, hold: vec![], flat: false, fp: false, ship_pos: None, nolod: false, nocull: false, nohud: false, bench: 0, record: None, every: 3, planet: 0, time: 0.0 };
+    let mut a = Args { screenshot: None, frames: 1, seed: config::SEED_DEFAULT, cam: None, wire: false, hold: vec![], flat: false, fp: false, ship_pos: None, nolod: false, nocull: false, nohud: false, bench: 0, record: None, every: 3, planet: 0, time: 0.0, warp: None };
     let v: Vec<String> = std::env::args().collect();
     let mut i = 1;
     while i < v.len() {
@@ -77,6 +79,7 @@ fn parse_args() -> Args {
             "--every" => { a.every = v[i + 1].parse().expect("--every K"); i += 1; }
             "--bench" => { a.bench = v[i + 1].parse().expect("--bench N"); i += 1; }
             "--planet" => { a.planet = v[i + 1].parse().expect("--planet i"); i += 1; }
+            "--warp" => { a.warp = Some(v[i + 1].parse().expect("--warp i (0 Sol, 1 Tatooine ... 6 Estrella de la Muerte)")); i += 1; }
             "--time" => { a.time = v[i + 1].parse().expect("--time T"); i += 1; }
             "--ship" => {
                 let n: Vec<f32> = v[i + 1].split(',').map(|s| s.trim().parse().expect("--ship x,y,z")).collect();
@@ -102,6 +105,7 @@ fn main() {
     app.hud = !args.nohud;
     app.t = args.time;
     if let Some(p) = args.ship_pos { app.place_ship(p, args.planet); }
+    if let Some(b) = args.warp { app.start_warp(b); }
     let mut fb = Framebuffer::new(config::RENDER_W, config::RENDER_H);
     let mut fps = hud::FpsCounter::new();
 
