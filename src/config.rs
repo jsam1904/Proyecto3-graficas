@@ -83,6 +83,14 @@ pub const TIME_SCALES: [f32; 7] = [0.25, 0.5, 1.0, 2.0, 5.0, 20.0, 100.0];
 pub const TIME_SCALE_DEFAULT: usize = 2;
 
 // --- Estrellas ---
+/// Warp (salto de hiperespacio): duración (s), distancia de llegada (en radios del destino),
+/// apertura extra del FOV (grados), líneas de velocidad sintéticas y coseno mínimo de alineación para elegir destino.
+pub const WARP_DURATION: f32 = 3.5;
+pub const WARP_STANDOFF: f32 = 3.5;
+pub const WARP_FOV_EXTRA: f32 = 40.0;
+pub const WARP_STREAKS: usize = 450;
+pub const WARP_TURN_K: f32 = 6.0;
+pub const WARP_AIM_COS: f32 = 0.8;
 pub const STAR_COUNT: usize = 1800;
 pub const STAR_SEED: u32 = 12345;
 
