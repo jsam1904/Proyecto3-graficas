@@ -32,7 +32,7 @@ impl Stars {
     }
 
     /// Dibuja solo donde no hay geometría (profundidad = 0). Se llama después de rasterizar.
-    pub fn draw(&self, fb: &mut Framebuffer, cam: &Camera, t: f32) {
+    pub fn draw(&self, fb: &mut Framebuffer, cam: &Camera, t: f32, warp: f32) {
         let aspect = fb.w as f32 / fb.h as f32;
         let (view, proj) = (cam.view(), cam.projection(aspect));
         for (i, s) in self.stars.iter().enumerate() {
@@ -41,6 +41,7 @@ impl Stars {
             if c.w <= 0.0 { continue; }
             let (sx, sy, _) = crate::raster::to_screen(c, fb.w, fb.h);
             if sx < 0.0 || sy < 0.0 || sx >= fb.w as f32 || sy >= fb.h as f32 { continue; }
+            if warp > 0.02 { crate::warp::draw_streak_for_star(fb, (sx, sy), warp, s.tinte, s.brillo.max(0.5)); continue; }
             let parpadeo = 0.85 + 0.15 * (t * (1.0 + (i % 5) as f32) + s.fase).sin();
             let col = to_u32(s.tinte * (s.brillo * parpadeo));
             let tam = if s.brillo > 0.8 { 2 } else { 1 }; // las más brillantes ocupan 2x2
