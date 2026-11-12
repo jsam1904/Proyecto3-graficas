@@ -10,7 +10,7 @@ imágenes externas: **todas las texturas son procedurales**.
 
 ![Recorrido por el Sol, los cinco planetas y la Estrella de la Muerte](media/demo.gif)
 
-[![Ver el video en YouTube](https://img.youtube.com/vi/uM5hv-dYFUw/maxresdefault.jpg)](https://youtu.be/uM5hv-dYFUw)
+[![Ver el video en YouTube](https://img.youtube.com/vi/9m8pVMjY7IE/maxresdefault.jpg)](https://youtu.be/9m8pVMjY7IE)
 
 _Recorrido: vista general del sistema y aproximación a Tatooine, Hoth, Endor, Mustafar, Coruscant y la Estrella de la Muerte, con sobrevuelo bajo en **modo local** y, al final, un **salto de hiperespacio (warp)** (generado con `--record`, ver opciones abajo)._
 
