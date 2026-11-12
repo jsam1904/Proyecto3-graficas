@@ -140,6 +140,10 @@ pub struct HudData<'a> {
     pub cull: bool,
     pub lod: bool,
     pub wire: bool,
+    /// Salto en curso: (nombre del destino, progreso 0..1).
+    pub warp: Option<(&'a str, f32)>,
+    /// Mensaje temporal (p. ej. "sin destino").
+    pub aviso: Option<&'a str>,
 }
 
 pub fn draw_hud(fb: &mut Framebuffer, d: &HudData) {
@@ -163,11 +167,23 @@ pub fn draw_hud(fb: &mut Framebuffer, d: &HudData) {
         dim_rect(fb, x - 10, 6, txt.len() as i32 * 12 + 20, 22);
         draw_text(fb, x, 10, &txt, 2, rgb(120, 255, 160));
     }
+    if let Some((n, p)) = d.warp {
+        let txt = format!("WARP >> {}  {:.0}%", n, p * 100.0);
+        let x = (fb.w as i32 - txt.len() as i32 * 12) / 2;
+        let y = fb.h as i32 - 80;
+        dim_rect(fb, x - 10, y - 4, txt.len() as i32 * 12 + 20, 22);
+        draw_text(fb, x, y, &txt, 2, rgb(150, 200, 255));
+    } else if let Some(m) = d.aviso {
+        let x = (fb.w as i32 - m.len() as i32 * 12) / 2;
+        let y = fb.h as i32 - 80;
+        dim_rect(fb, x - 10, y - 4, m.len() as i32 * 12 + 20, 22);
+        draw_text(fb, x, y, m, 2, rgb(255, 225, 140));
+    }
     let y = fb.h as i32 - 30;
     dim_rect(fb, 0, y - 4, fb.w as i32, 34);
     let g = rgb(185, 200, 225);
     draw_text(fb, 8, y, "W/S EMPUJE  A/D GUINADA  Q/E ALABEO  UP/DOWN CABECEO  SHIFT TURBO  ESPACIO/CTRL SUBIR/BAJAR (MODO LOCAL)", 1, g);
-    draw_text(fb, 8, y + 10, "C CAMARA  P PAUSA  [ ] TIEMPO  IZQ/DER O CLIC DER+MOUSE: MIRAR  F1 HUD  F2 CULLING  F3 LOD  F4 WIRE  ESC SALIR", 1, g);
+    draw_text(fb, 8, y + 10, "G WARP AL PLANETA APUNTADO  C CAMARA  P PAUSA  [ ] TIEMPO  IZQ/DER O CLIC DER+MOUSE: MIRAR  F1 HUD  F2 CULLING  F3 LOD  F4 WIRE  ESC SALIR", 1, g);
     if d.local.is_none() && d.altitude < 120.0 && d.cuerpo != "SOL" {
         draw_text(fb, 8, y - 12, "ACERCATE A UN PLANETA PARA ACTIVAR EL MODO LOCAL", 1, rgb(255, 225, 140));
     }
