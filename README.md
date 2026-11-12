@@ -12,7 +12,7 @@ imágenes externas: **todas las texturas son procedurales**.
 
 [![Ver el video en YouTube](https://img.youtube.com/vi/uM5hv-dYFUw/maxresdefault.jpg)](https://youtu.be/uM5hv-dYFUw)
 
-_Recorrido: vista general del sistema y aproximación a Tatooine, Hoth, Endor, Mustafar, Coruscant y la Estrella de la Muerte, con sobrevuelo bajo en **modo local** (generado con `--record`, ver opciones abajo)._
+_Recorrido: vista general del sistema y aproximación a Tatooine, Hoth, Endor, Mustafar, Coruscant y la Estrella de la Muerte, con sobrevuelo bajo en **modo local** y, al final, un **salto de hiperespacio (warp)** (generado con `--record`, ver opciones abajo)._
 
 ## Compilar y ejecutar
 
@@ -49,6 +49,7 @@ Modo de pruebas **sin ventana** (genera un PPM; conviértelo con `ffmpeg -i sali
 | **Shift** | turbo |
 | **Espacio / Ctrl** | subir / bajar altitud (**modo local**) |
 | **← / →**, o **botón derecho + mouse** | mirar alrededor (la cámara vuelve sola al centro) |
+| **G** | **warp**: salto de hiperespacio al planeta (o Sol) hacia el que apunta la proa |
 | **C** | alternar tercera / primera persona |
 | **P** | pausa |
 | **[ / ]** | bajar / subir la escala de tiempo (órbitas y rotaciones) |
@@ -87,6 +88,7 @@ Los parámetros ajustables están todos en `src/config.rs`.
 | **Colisión básica** (4) | `ship.rs::collide_sphere`, `app.rs::collide_ship` (usa la misma función de altura) | Volar contra un planeta o el Sol |
 | **Descartar objetos fuera de la vista** (7) | `culling.rs` (frustum de 6 planos + oclusión por horizonte/Sol), `app.rs::render` | **F2** y el HUD ("OBJ dibujados/totales", "FRUSTUM") |
 | **LOD por distancia** (8) | `planet.rs::lod_level` (4 niveles de planeta), `app.rs::render` (objetos: completo/simple/omitido) | **F3** y el HUD ("LOD: …", "LOD-OMIT") |
+| **Warp animado** (20) | `warp.rs`, `app.rs::try_warp/update_warp`, `stars.rs`, `ship.rs::turn_towards` | Apuntar a un planeta y pulsar **G**: estrellas estiradas, túnel de líneas, FOV abierto, viñeta azul y destello al llegar. Headless: `--warp N` |
 | **Coherencia visual y composición** (5) | `stars.rs` (estrellas con parpadeo), `app.rs::halo_solar`, paleta de planetas | Vista general desde lejos |
 | **Claridad de la experiencia** (5) | `hud.rs` (fuente bitmap propia, controles en pantalla, indicador de modo) | HUD siempre visible (F1 lo oculta) |
 
