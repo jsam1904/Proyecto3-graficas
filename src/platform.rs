@@ -9,9 +9,9 @@ use raylib::prelude::*;
 #[repr(usize)]
 pub enum Key {
     W, A, S, D, Q, E, Up, Down, Left, Right, Shift, Ctrl, Space,
-    C, P, LBracket, RBracket, F1, F2, F3, F4, Esc,
+    C, G, P, LBracket, RBracket, F1, F2, F3, F4, Esc,
 }
-const N_KEYS: usize = 22;
+const N_KEYS: usize = 23;
 
 const MAPA: [(Key, KeyboardKey); N_KEYS] = [
     (Key::W, KeyboardKey::KEY_W), (Key::A, KeyboardKey::KEY_A), (Key::S, KeyboardKey::KEY_S),
@@ -19,7 +19,7 @@ const MAPA: [(Key, KeyboardKey); N_KEYS] = [
     (Key::Up, KeyboardKey::KEY_UP), (Key::Down, KeyboardKey::KEY_DOWN),
     (Key::Left, KeyboardKey::KEY_LEFT), (Key::Right, KeyboardKey::KEY_RIGHT),
     (Key::Shift, KeyboardKey::KEY_LEFT_SHIFT), (Key::Ctrl, KeyboardKey::KEY_LEFT_CONTROL),
-    (Key::Space, KeyboardKey::KEY_SPACE), (Key::C, KeyboardKey::KEY_C), (Key::P, KeyboardKey::KEY_P),
+    (Key::Space, KeyboardKey::KEY_SPACE), (Key::C, KeyboardKey::KEY_C), (Key::G, KeyboardKey::KEY_G), (Key::P, KeyboardKey::KEY_P),
     (Key::LBracket, KeyboardKey::KEY_LEFT_BRACKET), (Key::RBracket, KeyboardKey::KEY_RIGHT_BRACKET),
     (Key::F1, KeyboardKey::KEY_F1), (Key::F2, KeyboardKey::KEY_F2), (Key::F3, KeyboardKey::KEY_F3),
     (Key::F4, KeyboardKey::KEY_F4), (Key::Esc, KeyboardKey::KEY_ESCAPE),
