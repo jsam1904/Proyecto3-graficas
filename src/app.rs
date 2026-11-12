@@ -17,6 +17,7 @@ use crate::ship::{self, LocalFrame, Ship};
 use crate::stars::Stars;
 use crate::surface::{self, SurfaceSet};
 use crate::texture::Texture;
+use crate::warp::{self, Warp};
 
 impl SurfaceSet { fn cfg_planeta_nombre(&self) -> &'static str { config::PLANETAS[self.cfg.planeta].nombre } }
 
@@ -47,6 +48,11 @@ pub struct App {
     pub seed: u64,
     /// Planeta de referencia si estamos en modo local (None = modo espacial).
     pub local: Option<usize>,
+    /// Salto de hiperespacio en curso, fase de animación de las líneas, destello de llegada y aviso temporal.
+    pub warp: Option<Warp>,
+    warp_phase: f32,
+    warp_flash: f32,
+    aviso_t: f32,
 }
 
 impl App {
@@ -63,7 +69,7 @@ impl App {
         let p0 = scene::planet_pos(&config::PLANETAS[config::SHIP_START_LOOK_PLANET], 0.0);
         let ship = Ship::new(Vec3::from(config::SHIP_START_POS), p0);
         let cam = FollowCam::new(&ship);
-        App { sun_lods, planets, surface, ship_mesh, ship_base, ship, cam, stars: Stars::new(), normal_map: Texture::ripple_normal_map(config::NORMAL_MAP_SIZE, 3.0), cam_override: None, t: 0.0, scale_idx: config::TIME_SCALE_DEFAULT,
+        App { sun_lods, planets, surface, ship_mesh, ship_base, ship, cam, stars: Stars::new(), normal_map: Texture::ripple_normal_map(config::NORMAL_MAP_SIZE, 3.0), cam_override: None, t: 0.0, scale_idx: config::TIME_SCALE_DEFAULT, warp: None, warp_phase: 0.0, warp_flash: 0.0, aviso_t: 0.0,
               paused: false, wire: false, cull: true, hud: true, flat_shading: false, lod: true, seed, local: None }
     }
 
@@ -79,6 +85,57 @@ impl App {
         let sol_alt = self.ship.pos.length() - config::SUN_RADIUS;
         self.planets.iter().map(|p| (p.cfg.nombre, p.altitude(self.t, self.ship.pos)))
             .fold(("SOL", sol_alt), |a, b| if b.1 < a.1 { b } else { a })
+    }
+
+    /// (posición, radio) del cuerpo `i` en el instante actual: 0 = Sol, i+1 = planeta i.
+    fn cuerpo(&self, i: usize) -> (Vec3, f32) {
+        if i == 0 { (Vec3::ZERO, config::SUN_RADIUS) } else { let p = &self.planets[i - 1]; (p.pos(self.t), p.cfg.radio * (1.0 + p.cfg.amplitud)) }
+    }
+
+    fn cuerpo_nombre(i: usize) -> &'static str { if i == 0 { "SOL" } else { config::PLANETAS[i - 1].nombre } }
+
+    /// Inicia un salto hacia el cuerpo `target` (0 = Sol, i+1 = planeta i). Sale del modo local si hacía falta.
+    pub fn start_warp(&mut self, target: usize) {
+        if self.local.is_some() {
+            self.ship.vel += self.ship.frame_vel;
+            self.ship.frame_vel = Vec3::ZERO;
+            self.local = None;
+        }
+        let (c, _) = self.cuerpo(target);
+        let dir0 = (self.ship.pos - c).normalize();
+        self.warp = Some(Warp { target, elapsed: 0.0, start: self.ship.pos, dir0 });
+        self.warp_phase = 0.0;
+    }
+
+    /// Elige como destino el cuerpo más alineado con la proa (y no demasiado cerca) y salta; si no hay, avisa.
+    fn try_warp(&mut self) {
+        let mut mejor: Option<(usize, f32)> = None;
+        for i in 0..=self.planets.len() {
+            let (c, r) = self.cuerpo(i);
+            let d = c - self.ship.pos;
+            if d.length() < r * (config::WARP_STANDOFF + 1.0) { continue; }
+            let a = d.normalize().dot(self.ship.fwd);
+            if a > config::WARP_AIM_COS && mejor.map_or(true, |m| a > m.1) { mejor = Some((i, a)); }
+        }
+        match mejor { Some((i, _)) => self.start_warp(i), None => self.aviso_t = 2.0 }
+    }
+
+    /// Avanza el salto: la nave sigue una curva suave hacia el punto de llegada (que acompaña la órbita del destino).
+    fn update_warp(&mut self, dt: f32) {
+        let (target, start, dir0) = { let w = self.warp.as_mut().unwrap(); w.elapsed += dt; (w.target, w.start, w.dir0) };
+        self.warp_phase += dt;
+        let (c, r) = self.cuerpo(target);
+        let dest = c + dir0 * (r * config::WARP_STANDOFF);
+        let w = self.warp.as_ref().unwrap();
+        let (s, fin) = (w.eased(), w.progress() >= 1.0);
+        self.ship.pos = start.lerp(dest, s);
+        self.ship.vel = Vec3::ZERO;
+        self.ship.turn_towards((c - self.ship.pos).normalize(), dt);
+        if fin {
+            self.ship.vel = self.ship.fwd * (config::SHIP_CRUISE_SPEED * 0.3);
+            self.warp = None;
+            self.warp_flash = 0.85;
+        }
     }
 
     pub fn time_scale(&self) -> f32 { config::TIME_SCALES[self.scale_idx] }
@@ -98,9 +155,16 @@ impl App {
         let dt = if self.paused { 0.0 } else { dt };
         self.t += dt * self.time_scale();
         let cuerpos = scene::bodies(self.t);
-        self.actualizar_modo();
-        let marco = self.local.map(|i| LocalFrame { vel: self.planets[i].vel(self.t), up: (self.ship.pos - self.planets[i].pos(self.t)).normalize(), dist: (self.ship.pos - self.planets[i].pos(self.t)).length() });
-        self.ship.update(inp, dt, &cuerpos, marco.as_ref());
+        self.warp_flash = (self.warp_flash - dt * 1.3).max(0.0);
+        self.aviso_t = (self.aviso_t - dt).max(0.0);
+        if inp.pressed(Key::G) && self.warp.is_none() { self.try_warp(); }
+        if self.warp.is_some() {
+            self.update_warp(dt);
+        } else {
+            self.actualizar_modo();
+            let marco = self.local.map(|i| LocalFrame { vel: self.planets[i].vel(self.t), up: (self.ship.pos - self.planets[i].pos(self.t)).normalize(), dist: (self.ship.pos - self.planets[i].pos(self.t)).length() });
+            self.ship.update(inp, dt, &cuerpos, marco.as_ref());
+        }
         self.collide_ship();
 
         // Mirada: flechas izq/der (continuo) o mouse con botón derecho.
@@ -175,7 +239,9 @@ impl App {
     pub fn render(&self, fb: &mut Framebuffer, fps: &hud::FpsCounter) -> Stats {
         fb.clear(rgb(2, 2, 8));
         let mut stats = Stats::default();
-        let cam = self.camera();
+        let mut cam = self.camera();
+        let warp_lvl = self.warp.as_ref().map_or(0.0, |w| w.level());
+        cam.fov_deg += config::WARP_FOV_EXTRA * warp_lvl; // el salto abre el campo de visión
         let vp = cam.projection(fb.w as f32 / fb.h as f32) * cam.view();
         let frustum = Frustum::new(&vp);
         let opts = DrawOpts { cull_back: self.cull, wireframe: self.wire };
@@ -251,7 +317,8 @@ impl App {
         q.render(fb); // rasterización multihilo por bandas
 
         // ---- Fondo: estrellas y halo del Sol (solo en píxeles vacíos).
-        self.stars.draw(fb, &cam, self.t);
+        self.stars.draw(fb, &cam, self.t, warp_lvl);
+        warp::draw_tunnel(fb, warp_lvl, self.warp_phase);
         halo_solar(fb, &cam, &vp);
         for p in &self.planets {
             let a = p.cfg.atmosfera;
@@ -259,6 +326,7 @@ impl App {
             halo_atmosfera(fb, &cam, &vp, p.pos(self.t), p.cfg.radio * (1.0 + p.cfg.amplitud), Vec3::from(a));
         }
 
+        warp::post_fx(fb, warp_lvl, self.warp_flash);
         if self.hud {
             let (nombre, alt) = self.nearest_altitude();
             hud::draw_hud(fb, &HudData {
@@ -266,6 +334,8 @@ impl App {
                 local: self.local.map(|i| self.planets[i].cfg.nombre),
                 camara: if self.cam.first_person { "1RA" } else { "3RA" }, time_scale: self.time_scale(), pausa: self.paused, seed: self.seed,
                 grav: self.ship.grav.length(), lods, cull: self.cull, lod: self.lod, wire: self.wire,
+                warp: self.warp.as_ref().map(|w| (Self::cuerpo_nombre(w.target), w.progress())),
+                aviso: if self.aviso_t > 0.0 { Some("APUNTA LA PROA HACIA UN PLANETA Y PRESIONA G") } else { None },
             });
         }
         stats
